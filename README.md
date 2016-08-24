@@ -1,5 +1,11 @@
 # openEHR-skeleton
+
 Step by step example of how eHealth apps are created in compliance with the openEHR standard
+
+This sample app was designed and coded by Pablo Pazos pablo.pazos@cabolabs.com / https://github.com/ppazos from CaboLabs: experts in Health Informatics, Standards and Interoperability.
+
+This code can be used only for educational purposes. &copy; CaboLabs 2016
+
 
 ## Use of Grails 2.5.3 as the base development framework
 
@@ -110,13 +116,16 @@ The view should look like this:
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h1>openEHR-EHR-OBSERVATION.blood_pressure.v1</h1>
-    <g:form action="save_blood_pressure">
-      <div class="OBSERVATION">
-      ...
-      </div>
-      <input type="submit" name="save" value="Submit" />
-    </g:form>
+    <div class="container">
+      <h1>openEHR-EHR-OBSERVATION.blood_pressure.v1</h1>
+      <g:form action="save_blood_pressure">
+        <input type="hidden" name="archetypeId" value="openEHR-EHR-OBSERVATION.blood_pressure.v1" />
+        <div class="OBSERVATION">
+        ...
+        </div>
+        <input type="submit" name="save" value="Submit" />
+      </g:form>
+    </div>
   </body>
 </html>
 ```
@@ -186,5 +195,103 @@ Now:
 Well done!
 
 
+## Let's add some style before continuing
 
+We'll use Twitter Bootstrap (http://getbootstrap.com/). Since Grails already has a plugin to include Boostrap into a Grails project, we will use that plugin: https://grails.org/plugin/twitter-bootstrap
+
+As the doc says, just open: grails-app/conf/BuildConfig.groovy in a text editor, and add the dependency to the plugin on the plugins section. It should look like this:
+
+```
+plugins {
+  ...
+  runtime ':twitter-bootstrap:3.3.5'
+  ...
+}
+```
+
+Run the app again, it will download the new plugin dependency.
+
+: grails run-app
+
+
+Follow their documentation to add the Bootstrap JS and CSS: https://github.com/groovydev/twitter-bootstrap-grails-plugin/blob/master/README.md
+
+We updated these files:
+ + grails-app/assets/stylesheets/application.css
+ + grails-app/assets/stylesheets/application.js
+
+And added:
+ + grails-app/assets/stylesheets/style.css
+
+And added the layout meta tag to our create_blood_pressure.gsp view:
+
+```
+<html>
+  <head>
+    <meta name="layout" content="main"/>
+  </head>
+  <body>
+    <div class="container">
+      <h1>openEHR-EHR-OBSERVATION.blood_pressure.v1</h1>
+      ...
+```
+
+Now reload the app and the form should look a lot better. Some input fields might be larger than required, we can fix that later. Let's continue with the important stuff. Check all the changes here: https://github.com/ppazos/openEHR-skeleton/commit/37b1c7f6152f45d5c6fa8a15b81e11580e88fe6a
+
+
+## Add data validation to your controller
+
+openEHR archetypes and templates enable the formal definition of the EHR information structure and constraints. We can use those definitions for data input validation. Right now, our controller is receiving data from the view, and we need to use the correspondent archetypes or templates to validate that data. Lets use archetypes to validate the data.
+
+
+### Include dependencies
+
+First, include openEHR binary dependencies under the openEHR-skeleton/lib folder. Get all the JARs from here: https://github.com/ppazos/openEHR-skeleton/tree/master/lib
+
+
+Then add some archetypes to the project. Lets create an archetypes folder inside the project, and copy the archetypes from the openEHR-ADL project: https://github.com/ppazos/openEHR-ADL/tree/master/resources/archetypes, the result is: https://github.com/ppazos/openEHR-skeleton/tree/master/archetypes
+
+
+### Using archetypes in the controller
+
+Open the RecordsController.groovy in a text editor, and add the code to load the archetypes and get the correspondent archetype, used to generate the view, in the save_blood_pressure() action:
+
+```
+package com.cabolabs.openehr.skeleton
+
+import com.cabolabs.openehr.adl.ArchetypeManager
+
+class RecordsController {
+
+    private static String PS = File.separator
+    private static String path = "."+ PS +"archetypes"
+
+    def index()
+    {
+    }
+    
+    def create_blood_pressure()
+    {
+    }
+    
+    def save_blood_pressure()
+    {
+       println params
+       
+       def loader = ArchetypeManager.getInstance(path)
+       loader.loadAll()
+       
+       def archetype = loader.getArchetype(params.archetypeId)
+       
+       assert archetype.archetypeId.value == params.archetypeId
+       
+       redirect action: 'create_blood_pressure'
+    }
+}
+```
+
+
+### And now we process all the parameters and try to validate the data values
+
+TBD
 
