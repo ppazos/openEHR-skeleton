@@ -1,11 +1,47 @@
 <html>
   <head>
     <meta name="layout" content="main"/>
+    <script>
+      var data   = ${( raw((params as grails.converters.JSON) as String) ) ?: '{}'};
+      var errors = ${( raw((errors as grails.converters.JSON) as String) ) ?: '{}'};
+      console.log(errors);
+      
+      $(function() {
+         
+         var controls = $(':input');
+         for (i=0; i<controls.length; i++)
+         {
+            console.log(controls[i].name);
+            
+            // show data
+            for (path in data)
+            {
+               if (controls[i].name.startsWith( path ))
+               {
+                  $(controls[i]).val( data[path] );
+               }
+            }
+            
+            // show errors
+            for (path in errors)
+            {
+               console.log(path);
+               
+               // field has error?
+               if (controls[i].name.startsWith( path ))
+               {
+                  $(controls[i]).parent().addClass('has-error');
+               }
+            }
+         }
+      });
+    </script>
   </head>
   <body>
+    
     <div class="container">
       <h1>openEHR-EHR-OBSERVATION.blood_pressure.v1</h1>
-      <g:form action="save_blood_pressure">
+      <g:form action="save_blood_pressure" method="POST">
         <input type="hidden" name="archetypeId" value="openEHR-EHR-OBSERVATION.blood_pressure.v1" />
         <div class="OBSERVATION">
           <label>Blood Pressure</label>

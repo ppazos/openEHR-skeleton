@@ -7,6 +7,9 @@ class RecordsController {
 
     private static String PS = File.separator
     private static String path = "."+ PS +"archetypes"
+    private static List datavalues = ['DV_TEXT', 'DV_CODED_TEXT', 'DV_QUANTITY', 'DV_COUNT',
+                                      'DV_ORDINAL', 'DV_DATE', 'DV_DATE_TIME', 'DV_PROPORTION',
+                                      'DV_DURATION']
 
     def index()
     {
@@ -18,7 +21,11 @@ class RecordsController {
     
     def save_blood_pressure()
     {
-       //println params
+       if (!params.save)
+       {
+          redirect action: 'create_blood_pressure'
+          return
+       }
        
        def loader = ArchetypeManager.getInstance(path)
        loader.loadAll()
@@ -27,6 +34,7 @@ class RecordsController {
        
        assert archetype.archetypeId.value == params.archetypeId
        
+       /*
        println "archetype paths"
        archetype.physicalPaths().sort{ it }.each {
           println it
@@ -42,6 +50,7 @@ class RecordsController {
           println path +": "+ value
        }
        println ""
+       */
        
        println "data grouper creator"
        def data_grouper = [:]
@@ -80,48 +89,121 @@ class RecordsController {
        }
        
        
+       /*
        println "data grouper"
        data_grouper.sort{ it.key }.each { path, data ->
           println path +" > "+ data
        }
+       */
        
        
        // each item on the data grouper is a datatype to validate a gainst a constraint
+       def validator
+       def parent
+       def errors = [:]
        data_grouper.sort{ it.key }.each { path, data ->
           
           constraint = archetype.node(path)
           println constraint.rmTypeName // the validator will depend on the type
           
-          /*
-          DV_QUANTITY
-DV_QUANTITY
-DV_TEXT
-DV_QUANTITY
-DV_QUANTITY
-CODE_PHRASE
-DV_QUANTITY
-CODE_PHRASE
-DV_TEXT
-DV_QUANTITY
-DV_QUANTITY
-DV_TEXT
-DV_QUANTITY
-DV_QUANTITY
-CODE_PHRASE
-CODE_PHRASE
-DV_QUANTITY
-CODE_PHRASE
-DV_TEXT
-CODE_PHRASE
-CODE_PHRASE
-CODE_PHRASE
-DV_TEXT
-CODE_PHRASE
-DV_TEXT
-*/
+          
+          // --------------------------------------------------------------------------------------
+          // Get the parent object to validate using the occurrences (mandatory requires all the data
+          // and optional will validate if not all the data is present)
+          //
+          // Get the element if the path is for element.value
+          // TODO: check for attributes of the IM
+          parent = archetype.node(constraint.parent.parentNodePath())
+          
+          //println constraint.parent.getClass() // CSingleAttribute / CComplexAttribute
+          
+          // if the parent is a datavalue, it is a complex datavalue
+          while (datavalues.contains(parent.rmTypeName))
+          {
+             parent = archetype.node(parent.parent.parentNodePath())
+          }
+          
+          if (parent.rmTypeName != 'ELEMENT')
+          {
+             //println "parent NOT ELEMENT: "+ parent.rmTypeName
+             println "the path is for an IM attribute: " + path
+             //println parent
+             return // Validation of IM attributes not supported yet
+          }
+          // --------------------------------------------------------------------------------------
+          
+          
+          validator = 'validate'+ constraint.rmTypeName
+          
+          if ("$validator"(data, constraint, parent))
+          {
+             println "valid"
+          }
+          else
+          {
+             println "invalid"
+             // path might not be the individual attribute path, but the grouper path for complex datavalues like DV_QUANTITY
+             errors[path] = 'error' // we might add different types of errors here
+          }
        }
        
+       if (errors.size() > 0)
+       {
+          render view:'create_blood_pressure', model:[errors:errors]
+          return
+       }
        
        redirect action: 'create_blood_pressure'
     }
+    
+    private boolean validateDV_QUANTITY(data, constraint, parent)
+    {
+       // If there is missing data to create the datavalue,
+       //   If the parent is mandatory, then the value is NOT VALID
+       //   If the parent is NOT mandatory, the the value is VALID (missing data is considered as an empty value)
+       def mandatory = (parent.occurrences.lower == 1)
+       if (!data.units || !data.magnitude)
+       {
+          return !mandatory
+       }
+       
+       def valid = false
+       def validator = constraint.list.find{ it.units == data.units } // soporta multiples unidades
+       if (validator) valid = validator.magnitude.has(data.magnitude.toDouble())
+       
+       return valid
+    }
+    
+    private boolean validateDV_TEXT(data, constraint, parent)
+    {
+       def mandatory = (parent.occurrences.lower == 1)
+       if (!data)
+       {
+          return !mandatory
+       }
+       //println data
+       //println constraint
+       return true
+    }
+    
+    private boolean validateCODE_PHRASE(data, constraint, parent)
+    {
+       def mandatory = (parent.occurrences.lower == 1)
+       if (!data)
+       {
+          return !mandatory
+       }
+       /*
+       println data
+       println constraint
+       println constraint.codeList
+       */
+       return constraint.codeList.contains(data) // validates a code
+    }
+    
+    /*
+    private boolean validate
+    {
+    }
+    */
 }
