@@ -293,5 +293,254 @@ class RecordsController {
 
 ### And now we process all the parameters and try to validate the data values
 
-TBD
+The processing of data recorded by users will depend on how the GUI generator assign names or ids to the fields of the form. In our example, the openEHR-ADL uigen tool assings the archetype path as the field name, so all the values recorded by a user will have a key in the "params" map, that is the correspondent archetype path.
 
+Also, there is an input with name "archetypeId" that will contain the identifier of the archetype used to generate the GUI. All the archetype paths will be valid inside that archetype. This is an initial approach, we can have more complex scenarios with many archetype ids, one solution for that is to use absolute paths: each path is prefixed by the archetype id.
+
+
+#### Group plain data
+
+Now let's consider that each data point on the archetype has a correspondet field on the view. But openEHR has some data types that are complex (e.g. DV_QUANTITY that has magnitude and units), so more than one value is required to validate the data type. Since on the controller we receive each individual value, the first step of the data processing will be to group values that belong to the same data type. This is determined by the path, since two values that belong to the same parent will share the prefix of their path.
+
+```
+def data_grouper = [:] // path of the container data type: values
+def constraint, parent_path, attribute
+
+// process all the params
+params.each { path, value ->
+       
+   // filter params that are not archetype paths, like the archetypeId
+   if (!path.startsWith('/')) return
+          
+   constraint = archetype.node(path)
+   
+   // checks if the path is inside a complex value, archetype.node will return null for the path
+   if (!constraint)
+   {
+      parent_path = Locatable.parentPath(path) // path to the complex data type in the archetype
+      constraint = archetype.node(parent_path)
+      
+      // gets the attribute name in the complex data type, e.g. for DV_QUANTITY, the attribute will be magnitude or units
+      attribute = path - (parent_path + '/') // /a[]/b[]/c - /a[]/b[]/ = c
+            
+      // use parent_path instead of constraint.path because the parent_path can contain an archetype ref
+      // and the constraint.path is just the referenced
+      if (!data_grouper[parent_path])
+      {
+         data_grouper[parent_path] = [:]
+      }
+      data_grouper[parent_path][attribute] = value // groups values from complex datatypes
+   }
+   else
+   {
+      data_grouper[path] = value // adds single value data types
+   }
+}
+```
+
+Example of a data grouper structure:
+
+```
+[
+ /data[at0001]/events[at1042]/state[at0007]/items[at0008]/value/defining_code:at1000,
+ /data[at0001]/events[at1042]/data[at0003]/items[at1007]/value:[magnitude:, units:mm[Hg]], 
+ /data[at0001]/events[at0006]/state[at0007]/items[at1043]/value/defining_code:at1044, 
+ /data[at0001]/events[at1042]/data[at0003]/items[at0033]/value:text data, 
+ /data[at0001]/events[at0006]/state[at0007]/items[at0008]/value/defining_code:at1000, 
+ /data[at0001]/events[at0006]/data[at0003]/items[at0005]/value:[magnitude:34345, units:mm[Hg]], 
+ /protocol[at0011]/items[at1033]/items[at1034]/value:, 
+ /protocol[at0011]/items[at1010]/value/defining_code:at1011, 
+ /data[at0001]/events[at0006]/data[at0003]/items[at0004]/value:[units:mm[Hg], magnitude:34534],
+ /data[at0001]/events[at0006]/data[at0003]/items[at1006]/value:[magnitude:54, units:mm[Hg]],
+ /data[at0001]/events[at1042]/state[at0007]/items[at1043]/value/defining_code:at1044, 
+ /data[at0001]/events[at1042]/math_function/defining_code:146,
+ /protocol[at0011]/items[at1033]/items[at0014]/value/defining_code:at0025
+ ...
+]
+```
+
+Note that some data is simple, like codes and text, bu the quantity data has 2 attributes and their correspondent values. Some values can be empty if the used didn't recorded them in the form. Validating empty values should be part of the validation process.
+
+
+#### Use the parent node to validate mandatory fields
+
+The constraint nodes associated with data types in the openEHR Archetype Model don't specify information about the optionality, that information is contained in the parent object that is not a data type, e.g. an ELEMENT node.
+
+We will iterate through the data_grouper to get the parent node of each item in the grouper. For simplicity we will only validate data inside ELEMENT.value. To validate data from other attributes of the openEHR Information Model like INSTRUCTION.narrative, we need to extend this validator, but this is a good starting point that will cover 80% of the cases.
+
+```
+List datavalues = ['DV_TEXT', 'DV_CODED_TEXT', 'DV_QUANTITY', 'DV_COUNT', 'DV_ORDINAL', 'DV_DATE', 'DV_DATE_TIME', 'DV_PROPORTION', 'DV_DURATION']
+
+data_grouper.sort{ it.key }.each { path, data ->
+          
+   constraint = archetype.node(path)
+   println constraint.rmTypeName // the validator will depend on the type: DV_QUANTITY, DV_TEXT, ...
+
+   
+   // Get the parent object to validate using the occurrences (mandatory requires all the data
+   // and optional will validate if not all the data is present)
+   parent = archetype.node(constraint.parent.parentNodePath())
+   
+   // if the parent is a datavalue, it is a complex datavalue, keep getting the parent
+   // until we reach an object that is not a datavalue
+   while (datavalues.contains(parent.rmTypeName))
+   {
+      parent = archetype.node(parent.parent.parentNodePath())
+   }
+          
+   if (parent.rmTypeName != 'ELEMENT')
+   {
+      println "the path is for an IM attribute: " + path
+      return // Validation of IM attributes not supported yet
+   }
+   
+   // TODO: validate!
+}
+```
+
+#### Create data validators
+
+We will have a data validate method for each data type, each one will validate optionality and the data recorded by the user.
+
+Using the dynamic nature of Groovy, we will play with the validate methods to avoid adding if's to check for the data types. Each validator will receive the same parameters.
+
+As an initial approach we will just create 3 validators, you can create more validators for other data types.
+
+```
+private boolean validateDV_QUANTITY(data, constraint, parent)
+{
+   // If there is missing data to create the datavalue,
+   //   If the parent is mandatory, then the value is NOT VALID
+   //   If the parent is NOT mandatory, the the value is VALID (missing data is considered as an empty value)
+   def mandatory = (parent.occurrences.lower == 1)
+   if (!data.units || !data.magnitude)
+   {
+      return !mandatory
+   }
+       
+   def valid = false
+   def validator = constraint.list.find{ it.units == data.units } // might have multiple units
+   if (validator) valid = validator.magnitude.has(data.magnitude.toDouble()) // TODO: check that the input is a valid double string, if not we can validate also the format
+   return valid
+}
+    
+private boolean validateDV_TEXT(data, constraint, parent)
+{
+   def mandatory = (parent.occurrences.lower == 1)
+   if (!data)
+   {
+      return !mandatory
+   }
+
+   return true
+}
+    
+private boolean validateCODE_PHRASE(data, constraint, parent)
+{
+   def mandatory = (parent.occurrences.lower == 1)
+   if (!data)
+   {
+      return !mandatory
+   }
+   return constraint.codeList.contains(data) // validates a code
+}
+```
+
+Our validators return boolean, that is enough to know if the data is valid or not, but if the data is invalid we might want to know more details about the failed validation. One approach would be to throw specific Exceptions for each possible failed validation, and catch the exceptions to report each error to the user.
+
+
+#### Integrate the validators
+
+```
+List datavalues = ['DV_TEXT', 'DV_CODED_TEXT', 'DV_QUANTITY', 'DV_COUNT', 'DV_ORDINAL', 'DV_DATE', 'DV_DATE_TIME', 'DV_PROPORTION', 'DV_DURATION']
+
+def validator, parent
+def errors = [:] // we will collect the validation errors to show them to the user
+       
+data_grouper.sort{ it.key }.each { path, data ->
+          
+   constraint = archetype.node(path)
+   
+   // Get the parent object to validate using the occurrences (mandatory requires all the data
+   // and optional will validate if not all the data is present)
+   parent = archetype.node(constraint.parent.parentNodePath())
+   
+   // if the parent is a datavalue, it is a complex datavalue, keep getting the parent
+   // until we reach an object that is not a datavalue
+   while (datavalues.contains(parent.rmTypeName))
+   {
+      parent = archetype.node(parent.parent.parentNodePath())
+   }
+          
+   if (parent.rmTypeName != 'ELEMENT')
+   {
+      return // Validation of IM attributes not supported yet
+   }
+   
+   
+   // Creates the name of the validator method and calls it (Groovy is awesome!)
+   validator = 'validate'+ constraint.rmTypeName
+   if (!"$validator"(data, constraint, parent))
+   {
+      // path might not be the individual attribute path, but the grouper path for complex datavalues like DV_QUANTITY
+      errors[path] = 'error' // TODO: we might add different types of errors here
+   }
+}
+```
+
+
+#### Report errors to the user
+
+If we have any errors, let's show them to the user.
+
+First, we need to pass the errors to the view. This renders the view and give access to the errors.
+
+```
+if (errors.size() > 0)
+{
+   render view:'create_blood_pressure', model:[errors:errors]
+   return
+}
+```
+
+On the create_blood_pressure view, we will add some Javascript code to mark the fields that have errors with a red border. Also, we want to display the data recorder by the user so they can see the data that has errors.
+
+```
+<script>
+var data   = ${( raw((params as grails.converters.JSON) as String) ) ?: '{}'};
+var errors = ${( raw((errors as grails.converters.JSON) as String) ) ?: '{}'};
+
+$(function() {
+   
+   var controls = $(':input');
+   for (i=0; i<controls.length; i++)
+   {
+      // show data
+      for (path in data)
+      {
+         if (controls[i].name == path)
+         {
+            $(controls[i]).val( data[path] );
+         }
+      }
+      
+      // show errors
+      for (path in errors)
+      {
+         // field has error?
+         if (controls[i].name.startsWith( path ))
+         {
+            $(controls[i]).parent().addClass('has-error'); // uses the Twitter Bootstrap has-error class to show the red border
+         }
+      }
+   }
+});
+</script>
+```
+
+#### Full validation and error display code
+
+Check the controller and the view here:
+
+  + https://github.com/ppazos/openEHR-skeleton/blob/master/grails-app/controllers/com/cabolabs/openehr/skeleton/RecordsController.groovy
+  + https://github.com/ppazos/openEHR-skeleton/blob/master/grails-app/views/records/create_blood_pressure.gsp
