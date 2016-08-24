@@ -54,10 +54,7 @@ class RecordsController {
        
        println "data grouper creator"
        def data_grouper = [:]
-       
-       def constraint
-       def parent_path
-       def attribute
+       def constraint, parent_path, attribute
        params.each { path, value ->
        
           // is a path?
@@ -72,8 +69,8 @@ class RecordsController {
             
             attribute = path - (parent_path + '/') // /a[]/b[]/c - /a[]/b[]/ = c
             
-            // user parent_path instead of constraint.path because the parent_path can contain an archetype
-            // ref and the constraint.path is just the referenced
+            // use parent_path instead of constraint.path because the parent_path can contain an archetype ref
+            // and the constraint.path is just the referenced
             if (!data_grouper[parent_path])
             {
                data_grouper[parent_path] = [:]
@@ -84,13 +81,13 @@ class RecordsController {
           {
             data_grouper[path] = value
           }
-          
-          //println constraint.getClass()
        }
        
        
-       /*
+       
        println "data grouper"
+       println data_grouper
+       /*
        data_grouper.sort{ it.key }.each { path, data ->
           println path +" > "+ data
        }
@@ -104,14 +101,13 @@ class RecordsController {
        data_grouper.sort{ it.key }.each { path, data ->
           
           constraint = archetype.node(path)
-          println constraint.rmTypeName // the validator will depend on the type
+          //println constraint.rmTypeName // the validator will depend on the type
           
           
           // --------------------------------------------------------------------------------------
           // Get the parent object to validate using the occurrences (mandatory requires all the data
           // and optional will validate if not all the data is present)
           //
-          // Get the element if the path is for element.value
           // TODO: check for attributes of the IM
           parent = archetype.node(constraint.parent.parentNodePath())
           
@@ -137,11 +133,11 @@ class RecordsController {
           
           if ("$validator"(data, constraint, parent))
           {
-             println "valid"
+             //println "valid"
           }
           else
           {
-             println "invalid"
+             //println "invalid"
              // path might not be the individual attribute path, but the grouper path for complex datavalues like DV_QUANTITY
              errors[path] = 'error' // we might add different types of errors here
           }

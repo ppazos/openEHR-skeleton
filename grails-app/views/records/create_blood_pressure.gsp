@@ -16,7 +16,7 @@
             // show data
             for (path in data)
             {
-               if (controls[i].name.startsWith( path ))
+               if (controls[i].name == path)
                {
                   $(controls[i]).val( data[path] );
                }
@@ -38,7 +38,6 @@
     </script>
   </head>
   <body>
-    
     <div class="container">
       <h1>openEHR-EHR-OBSERVATION.blood_pressure.v1</h1>
       <g:form action="save_blood_pressure" method="POST">
