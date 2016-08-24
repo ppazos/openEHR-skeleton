@@ -130,7 +130,7 @@
                 <label>state structure</label>
                 <div class="ELEMENT">
                   <label>Position</label>
-                  <select name="/data[at0001]/events[at1042]/state/items[at0008]/value/defining_code" class="form-control">
+                  <select name="/data[at0001]/events[at1042]/state[at0007]/items[at0008]/value/defining_code" class="form-control">
                     <option value="at1000">Standing</option>
                     <option value="at1001">Sitting</option>
                     <option value="at1002">Reclining</option>
@@ -144,7 +144,7 @@
                 </div>
                 <div class="ELEMENT">
                   <label>Sleep status</label>
-                  <select name="/data[at0001]/events[at1042]/state/items[at1043]/value/defining_code" class="form-control">
+                  <select name="/data[at0001]/events[at1042]/state[at0007]/items[at1043]/value/defining_code" class="form-control">
                     <option value="at1044">Alert &amp; awake</option>
                     <option value="at1045">Sleeping</option>
                   </select>
