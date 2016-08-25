@@ -560,21 +560,76 @@ We will use a simple yet very generic and expressive molde that can be seen as a
 
 [![Generic hierarchical model for openEHR data.png](https://s12.postimg.org/go6sgqm4d/Generic_hierarchical_model_for_open_EHR_data.png)](https://postimg.org/image/an93jnzi1/)
 
-Ehr: represents the EHR of a patient.
-Patient: represents a patient.
-Clinician: represents a professional that can crear clinical documents for patients and add them to the patient's EHR.
-Document: represents a clinical document.
-ClinicalSession: represents a visit from a patient to a clinician, in which many documents can be created.
-Item: represents an abstract data structure that models all the openEHR structural classes from SECTION to ELEMENT.
-Structure: represents all the container classes from the openEHR Information Model.
-Element: represents the openEHR ELEMENT.
-DataValue: represents the openEHR DATA_VALUE.
-DvText: represents the openEHR DV_TEXT.
-DvCodedText: represents the openEHR DV_CODED_TEXT.
-DvBoolean: represents the openEHR DV_BOOLEAN.
-DvDateTime: represents the openEHR DV_DATE_TIME.
-DvQuantity: represents the openEHR DV_QUANTITY.
+ + Ehr: represents the EHR of a patient.
+ + Patient: represents a patient.
+ + Clinician: represents a professional that can crear clinical documents for patients and add them to the patient's EHR.
+ + Document: represents a clinical document (and an openEHR COMPOSITION).
+ + ClinicalSession: represents a visit from a patient to a clinician, in which many documents can be created.
+ + Item: represents an abstract data structure that models all the openEHR structural classes from SECTION to ELEMENT.
+ + Structure: represents all the container classes from the openEHR Information Model.
+ + Element: represents the openEHR ELEMENT.
+ + DataValue: represents the openEHR DATA_VALUE.
+ + DvText: represents the openEHR DV_TEXT.
+ + DvCodedText: represents the openEHR DV_CODED_TEXT.
+ + DvBoolean: represents the openEHR DV_BOOLEAN.
+ + DvDateTime: represents the openEHR DV_DATE_TIME.
+ + DvQuantity: represents the openEHR DV_QUANTITY.
 
 
 As you might notice, not all the data values are modeled, for example DvCount, DvPrortion, DvIdentifier, etc. are missing from the model, this is just for simplicity. Adding those shouldn't be difficult having the current ones as examples.
+
+
+### Creating the domain classes in Grails
+
+Grails has a command to create domain classes (http://docs.grails.org/2.5.3/ref/Command%20Line/create-domain-class.html), let's just defined one class using this command, then just grab our model implementation.
+
+: grails create-domain-class com.cabolabs.openehr.skeleton.model.Ehr
+
+That will create these files:
+
+ + grails-app/domain/com/cabolabs/openehr/skeleton/model/Ehr.groovy
+ + test/unit/com/cabolabs/openehr/skeleton/model/EhrSpec.groovy
+
+
+We will open the Ehr.groovy file and add the fields uid and dateCreated. The final result will be:
+
+```
+package com.cabolabs.openehr.skeleton.model
+
+class Ehr {
+
+   String uid = java.util.UUID.randomUUID() as String
+   Date dateCreated = new Date()
+   
+   static constraints = {
+   }
+}
+```
+
+So everytime an Ehr is created, the uid and dateCreated will be assigned automatically. Wow, that is helpful!
+
+
+Now, let's add a simple test for the Ehr class. Open the EhrSpec.groovy file in a text editor and add this method:
+
+```
+void "create an EHR"()
+{
+   when:
+     def ehr = new Ehr()      // Create an EHR
+     ehr.save()               // Save the EHR to the database
+   then:
+     Ehr.count() == 1         // Check how many EHRs are stored in the database, should be 1
+     Ehr.get(1).uid != null   // Get the EHR with id=1 from the database, and check that it's uid is not null
+}
+```
+
+
+Run the tests and cross your fingers to make them pass ;)
+
+: grails test-app unit:
+
+
+To create the rest of the domain classes requires some specific Grails knowledge about how relationships and constraints are modeled. For short, just refer to the grails-app/domain classes to see the complete implementation of the model on our diagram.
+
+
 
