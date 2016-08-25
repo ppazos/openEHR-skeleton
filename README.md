@@ -544,3 +544,37 @@ Check the controller and the view here:
 
   + https://github.com/ppazos/openEHR-skeleton/blob/master/grails-app/controllers/com/cabolabs/openehr/skeleton/RecordsController.groovy
   + https://github.com/ppazos/openEHR-skeleton/blob/master/grails-app/views/records/create_blood_pressure.gsp
+
+
+
+## Storing data
+
+Now that we have data input and validation, we want to store the validated data into our database. In order to do that, we need to specify our information model in Grails as domain classes (http://docs.grails.org/2.5.3/ref/Domain%20Classes/Usage.html). The the magic happens: the Grails ORM or GORM (http://docs.grails.org/2.5.3/guide/single.html#GORM) allow us to work with objects and store the data in a relational database.
+
+By default, Grails comes with an embedded database, that is OK for our guide. In case you want to use another database like MySQL or Postgres you can change the DataSource (http://docs.grails.org/2.5.3/ref/Plug-ins/dataSource.html).
+
+
+### Defining our model
+
+We will use a simple yet very generic and expressive molde that can be seen as an over simplified openEHR Information Model. This model is focused on a single application for medical information recording, and is not a full integrated EHR model.
+
+[![Generic hierarchical model for openEHR data.png](https://s12.postimg.org/go6sgqm4d/Generic_hierarchical_model_for_open_EHR_data.png)](https://postimg.org/image/an93jnzi1/)
+
+Ehr: represents the EHR of a patient.
+Patient: represents a patient.
+Clinician: represents a professional that can crear clinical documents for patients and add them to the patient's EHR.
+Document: represents a clinical document.
+ClinicalSession: represents a visit from a patient to a clinician, in which many documents can be created.
+Item: represents an abstract data structure that models all the openEHR structural classes from SECTION to ELEMENT.
+Structure: represents all the container classes from the openEHR Information Model.
+Element: represents the openEHR ELEMENT.
+DataValue: represents the openEHR DATA_VALUE.
+DvText: represents the openEHR DV_TEXT.
+DvCodedText: represents the openEHR DV_CODED_TEXT.
+DvBoolean: represents the openEHR DV_BOOLEAN.
+DvDateTime: represents the openEHR DV_DATE_TIME.
+DvQuantity: represents the openEHR DV_QUANTITY.
+
+
+As you might notice, not all the data values are modeled, for example DvCount, DvPrortion, DvIdentifier, etc. are missing from the model, this is just for simplicity. Adding those shouldn't be difficult having the current ones as examples.
+
