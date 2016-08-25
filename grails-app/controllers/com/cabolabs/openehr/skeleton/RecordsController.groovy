@@ -149,6 +149,10 @@ class RecordsController {
           return
        }
        
+       
+       // TODO: save data
+       
+       
        redirect action: 'create_blood_pressure'
     }
     
