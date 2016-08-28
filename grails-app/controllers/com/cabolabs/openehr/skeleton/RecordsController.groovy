@@ -2,8 +2,12 @@ package com.cabolabs.openehr.skeleton
 
 import com.cabolabs.openehr.adl.ArchetypeManager
 import org.openehr.rm.common.archetyped.Locatable
+import com.cabolabs.openehr.skeleton.model.datatypes.*
+import com.cabolabs.openehr.skeleton.model.*
 
 class RecordsController {
+
+    def dataBindingService
 
     private static String PS = File.separator
     private static String path = "."+ PS +"archetypes"
@@ -152,6 +156,20 @@ class RecordsController {
        
        // TODO: save data
        
+       // We create the document here for simplicity, because with archetypes
+       // we should also add support for SLOTS and need to resolve the SLOTS.
+       // Or use Operational Templates that have the complete document structure.
+       
+       def document = new Document(
+          author: Clinician.get(1), // The clinician should come from a session, for that we need to add a login
+          templateId: 'Encounter', 
+          archetypeId: 'openEHR-EHR-COMPOSITION.encounter.v1',
+          content: []
+       )
+       
+       def s = dataBindingService.bind(data_grouper, params.archetypeId, 'content')
+       println ">>> " + s
+       println s as grails.converters.JSON
        
        redirect action: 'create_blood_pressure'
     }
