@@ -7,7 +7,7 @@ This sample app was designed and coded by Pablo Pazos pablo.pazos@cabolabs.com /
 This code can be used only for educational purposes. &copy; CaboLabs 2016
 
 
-## Use of Grails 2.5.3 as the base development framework
+## Use of Grails 2.5.5 as the base development framework
 
 https://grails.org/download.html
 
@@ -629,7 +629,29 @@ Run the tests and cross your fingers to make them pass ;)
 : grails test-app unit:
 
 
-To create the rest of the domain classes requires some specific Grails knowledge about how relationships and constraints are modeled. For short, just refer to the grails-app/domain classes to see the complete implementation of the model on our diagram.
+To create the rest of the domain classes requires some specific Grails knowledge about how relationships and constraints are modeled. For short, just refer to the grails-app/domain classes to see the complete implementation of the model on our diagram: https://github.com/ppazos/openEHR-skeleton/tree/master/grails-app/domain/com/cabolabs/openehr/skeleton/model
 
 
+To show how to create a full structure and save it into the database, we added code to create samepl data in the Bootstrap script, so when the app runs, the data will be created in the database.
 
+Check: https://github.com/ppazos/openEHR-skeleton/blob/master/grails-app/conf/BootStrap.groovy
+
+To verify that the data is in the database, if you are using the default Grails database, go to the database console after running the app: http://localhost:8080/openEHR-skeleton/dbconsole and login using the default user: sa, password: (empty).
+
+
+## Data binding
+
+Now we have data input from the user that can be validated, and a model that can be persisted in a relational database. Now we need to bind the data to the model to complete the data input and store process.
+
+Let's put the data binding logic in a grails service, create the service by executing:
+
+: grails create-service com.cabolabs.openehr.skeleton.data.DataBinding
+
+
+That will create two files:
+
+ + grails-app/services/com/cabolabs/openehr/skeleton/data/DataBindingService.groovy
+ + test/unit/com/cabolabs/openehr/skeleton/data/DataBindingServiceSpec.groovy
+
+
+TBD / WIP
