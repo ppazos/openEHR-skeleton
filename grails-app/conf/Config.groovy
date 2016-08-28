@@ -88,6 +88,9 @@ grails.hibernate.osiv.readonly = false
 environments {
     development {
         grails.logging.jul.usebridge = true
+        
+        // Enable pretty print for JSON.
+        grails.converters.json.pretty.print = true
     }
     production {
         grails.logging.jul.usebridge = false

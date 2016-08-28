@@ -9,6 +9,9 @@ class BootStrap {
       JSON.registerObjectMarshaller(com.cabolabs.openehr.skeleton.model.Structure) {
          return [type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, items: it.items]
       }
+      JSON.registerObjectMarshaller(com.cabolabs.openehr.skeleton.model.Element) {
+         return [type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, name: it.name, value: it.value]
+      }
       /*
       JSON.registerObjectMarshaller(com.cabolabs.openehr.skeleton.model.Item) {
          if (it.items)

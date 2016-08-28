@@ -171,6 +171,11 @@ class RecordsController {
        println ">>> " + s
        println s as grails.converters.JSON
        
+       // Try saving the document
+       document.addToContent(s)
+       if (!document.save()) println document.errors.allErrors
+       
+       
        redirect action: 'create_blood_pressure'
     }
     
