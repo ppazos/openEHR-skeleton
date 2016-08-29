@@ -64,23 +64,9 @@ class DataBindingService {
          nodeId:      o.nodeId,
          type:        o.rmTypeName,
          archetypeId: archetype.archetypeId.value,
-         attr:        attr_name)
+         attr:        attr_name,
+         attributes:  [:])
       
-      /*
-      def filtered_data, method, type, items
-      o.attributes.each { attr ->
-      
-         filtered_data = filterData(data_grouper, o.path())
-         type = attr.class.getSimpleName()
-         method = 'bind_'+ type
-         items = this."$method"(attr, filtered_data)
-         
-         items.each { item ->
-            
-            strct.addToItems(item)
-         }
-      }
-      */
       processAttributes(o, data_grouper, strct) // adds items
       
       return strct
@@ -90,10 +76,10 @@ class DataBindingService {
    {
       println "Attributes of "+ o.rmTypeName
       
-      def filtered_data, method, type, items
+      def filtered_data, method, type, items//, attrs = [:]
       o.attributes.each { attr ->
       
-         println "Attribute "+ attr.rmAttributeName
+         println "Attribute "+ attr.rmAttributeName +" "+ attr.class.getSimpleName()
          
          filtered_data = filterData(data_grouper, this.getPath(o))
          type = attr.class.getSimpleName()
@@ -102,9 +88,19 @@ class DataBindingService {
          
          items.each { item ->
             
-            s.addToItems(item)
+            if (item instanceof Item)
+              s.addToItems(item)
+            else // item is a datavalue
+            {
+               //attrs << [ (attr.rmAttributeName): item ]
+               //if (!s.attributes) s.attributes = [:]
+               s.attributes << [(attr.rmAttributeName): item]
+               //s.addToAttributes( (attr.rmAttributeName): item )
+            }
          }
       }
+      //println "attributes "+ attrs
+      //s.attributes = attrs
    }
    
    private bind_HISTORY(CComplexObject o, Map data_grouper, String attr_name)
@@ -230,7 +226,7 @@ class DataBindingService {
          type:        o.rmTypeName, 
          archetypeId: archetype.archetypeId.value,
          attr:        attr_name,
-         attributes:  [
+         attributes:  [:
            //'math_function': new DvCodedText(value:'') // TODO: get the code from the archetype and use terminology to get the value
            /*,
            'width':         new DvDuration(value: 'PT24H')*/ // TOOD> add DvDuration to data types
@@ -249,7 +245,8 @@ class DataBindingService {
          nodeId:      o.nodeId, 
          type:        o.rmTypeName, 
          archetypeId: archetype.archetypeId.value,
-         attr:        attr_name
+         attr:        attr_name,
+         attributes:  [:]
       )
       
       processAttributes(o, data_grouper, strct) // adds items
@@ -266,7 +263,8 @@ class DataBindingService {
          nodeId:      this.archetype.node( o.targetPath ).nodeId, // uses the reference nodeId because the o nodeId is null
          type:        o.rmTypeName, 
          archetypeId: archetype.archetypeId.value,
-         attr:        attr_name
+         attr:        attr_name,
+         attributes:  [:]
       )
       
       processAttributes(this.archetype.node( o.targetPath ), data_grouper, strct) // adds items
@@ -283,7 +281,8 @@ class DataBindingService {
          nodeId:      o.nodeId, 
          type:        o.rmTypeName, 
          archetypeId: archetype.archetypeId.value,
-         attr:        attr_name
+         attr:        attr_name,
+         attributes: [:]
       )
       
       processAttributes(o, data_grouper, strct) // adds items
@@ -304,13 +303,12 @@ class DataBindingService {
          type:        o.rmTypeName, 
          archetypeId: archetype.archetypeId.value,
          attr:        attr_name
-         /*,
-         name:        new DvText(value:''), // TODO: resolve name, check o constraint on the name...
-         value:       new DvText(value:'') // TODO: get from binded_attrs
-         */
       )
       
+      // Improvement:
+      // Element value and name can be put in item.attributes
       
+      // bind value and name (if there is a constraint)
       def filtered_data, binded_attrs, type, method
       o.attributes.each { attr ->
          
@@ -348,17 +346,21 @@ class DataBindingService {
               children=[
                org.openehr.am.archetype.constraintmodel.CPrimitiveObject@b64d29[
                  item=org.openehr.am.archetype.constraintmodel.primitive.CDuration@83e511[
-                 value=<null>
-                 interval=org.openehr.rm.support.basic.Interval@133c26e[lower=PT24H,lowerIncluded=true,upper=PT24H,upperIncluded=true]
-                 assumedValue=<null>
-                 pattern=<null>
-                 defaultValue=<null>
+                    value=<null>
+                    interval=org.openehr.rm.support.basic.Interval@133c26e[lower=PT24H,lowerIncluded=true,upper=PT24H,upperIncluded=true]
+                    assumedValue=<null>
+                    pattern=<null>
+                    defaultValue=<null>
          
          */
+         println o.attributes.find { it.rmAttributeName == 'value' }.children[0].item.interval.lower
+         
+         def duration = o.attributes.find { it.rmAttributeName == 'value' }.children[0].item.interval.lower
+         return new DvDuration(value: duration)
       }
       else
       {
-         return new DvDuration(value:data_grouper[o.path()])
+         return new DvDuration(value: data_grouper[o.path()])
       }
    }
    
@@ -379,7 +381,7 @@ class DataBindingService {
    {
       println "DV_TEXT :"+ data_grouper
       
-      
+      // TODO: put the text from the constraint if it is set there (code in instance generator)
       if (!o.attributes || o.attributes.size() == 0)
       {
       }

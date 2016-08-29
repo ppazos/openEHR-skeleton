@@ -175,6 +175,7 @@ class RecordsController {
       document.addToContent(s)
       if (!document.save()) println document.errors.allErrors
       
+      println document as grails.converters.JSON
       
       redirect action: 'create_blood_pressure'
    }
@@ -230,7 +231,7 @@ class RecordsController {
     */
    def query_sbp()
    {
-      def systolic_bps_items = Item.findAllByArchetypeIdAndPath(
+      def systolic_bps_items = Element.findAllByArchetypeIdAndPath(
         'openEHR-EHR-OBSERVATION.blood_pressure.v1',
         '/data[at0001]/events[at0006]/data[at0003]/items[at0004]'
       )

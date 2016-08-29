@@ -19,4 +19,8 @@ class Item {
    static constraints = {
       attr(nullable:true)
    }
+   
+   static mapping = {
+      attributes cascade: "all"
+   }
 }

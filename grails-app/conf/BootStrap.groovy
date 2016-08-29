@@ -7,21 +7,13 @@ class BootStrap {
    def init = { servletContext ->
    
       JSON.registerObjectMarshaller(com.cabolabs.openehr.skeleton.model.Structure) {
-         return [type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, items: it.items]
+         return [id: it.id, type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, items: it.items, attributes:it.attributes]
       }
       JSON.registerObjectMarshaller(com.cabolabs.openehr.skeleton.model.Element) {
-         return [type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, name: it.name, value: it.value]
+         return [id: it.id, type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, name: it.name, value: it.value, attributes:it.attributes]
       }
-      /*
-      JSON.registerObjectMarshaller(com.cabolabs.openehr.skeleton.model.Item) {
-         if (it.items)
-           return [type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, items: it.items]
-         else
-           return [type:it.type, attr:it.attr, archetypeId:it.archetypeId, path:it.path, nodeId:it.nodeId, name: it.name, value: it.value]
-      }
-      */
       JSON.registerObjectMarshaller(com.cabolabs.openehr.skeleton.model.Document) {
-         return [start:it.start, end:it.end, archetypeId:it.archetypeId, templateId:it.templateId, author:it.author, content: it.content]
+         return [id: it.id, start:it.start, end:it.end, archetypeId:it.archetypeId, templateId:it.templateId, author:it.author, content: it.content]
       }
 
    
@@ -94,6 +86,9 @@ class BootStrap {
               )
              ]
             )
+           ],
+           attributes: [
+            'origin': new DvDateTime(value:new Date())
            ]
           )
          ]
@@ -105,6 +100,46 @@ class BootStrap {
       {
          println document.errors.allErrors
       }
+      
+      def s = new Structure(
+        type:'ITEM_TREE',
+        attr:'data', 
+        archetypeId: 'openEHR-EHR-OBSERVATION.blood_pressure.v1', 
+        path: '/data[at0001]/events[at0006]/data[at0003]',
+        nodeId: 'at0003',
+        items: [],
+        attributes: [
+         'fake': new DvDateTime(value:new Date())
+        ]
+      )
+      if (!s.save()) println e.errors.allErrors
+      
+      def s1 = new Structure(
+        type:'ITEM_TREE',
+        attr:'data', 
+        archetypeId: 'openEHR-EHR-OBSERVATION.blood_pressure.v1', 
+        path: '/data[at0001]/events[at0006]/data[at0003]',
+        nodeId: 'at0003',
+        items: [],
+      )
+      
+      s1.attributes = ['fake': new DvDateTime(value:new Date())]
+      
+      if (!s1.save()) println e.errors.allErrors
+      
+      def s2 = new Structure(
+        type:'ITEM_TREE',
+        attr:'data', 
+        archetypeId: 'openEHR-EHR-OBSERVATION.blood_pressure.v1', 
+        path: '/data[at0001]/events[at0006]/data[at0003]',
+        nodeId: 'at0003',
+        items: [],
+        attributes: [:]
+      )
+      
+      s2.attributes << ['fake': new DvDateTime(value:new Date())]
+      
+      if (!s2.save()) println e.errors.allErrors
       
       println Structure.count() // 4
       println Element.list()    // 1 Element
