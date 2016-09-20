@@ -56,6 +56,10 @@ class RecordsController {
       println ""
       */
       
+      
+      // ===============================================================================
+      // Data processing / preparation
+      
       println "data grouper creator"
       def data_grouper = [:]
       def constraint, parent_path, attribute
@@ -97,6 +101,9 @@ class RecordsController {
       }
       */
       
+      
+      // =========================================================================================
+      // Data validation
       
       // each item on the data grouper is a datatype to validate a gainst a constraint
       def validator
@@ -153,8 +160,8 @@ class RecordsController {
         return
       }
       
-      
-      // TODO: save data
+      // ===================================================================================
+      // Data binding
       
       // We create the document here for simplicity, because with archetypes
       // we should also add support for SLOTS and need to resolve the SLOTS.
@@ -170,6 +177,10 @@ class RecordsController {
       def s = dataBindingService.bind(data_grouper, params.archetypeId, 'content')
       println ">>> " + s
       println s as grails.converters.JSON
+      
+      
+      // ==================================================================================
+      // Data store (Grails ORM)
       
       // Try saving the document
       document.addToContent(s)
