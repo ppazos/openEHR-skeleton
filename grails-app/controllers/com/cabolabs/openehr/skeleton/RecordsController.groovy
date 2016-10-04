@@ -204,7 +204,14 @@ class RecordsController {
       
       def valid = false
       def validator = constraint.list.find{ it.units == data.units } // soporta multiples unidades
-      if (validator) valid = validator.magnitude.has(data.magnitude.toDouble())
+      try
+      {
+         if (validator) valid = validator.magnitude.has(data.magnitude.toDouble())
+      }
+      catch (NumberFormatException e)
+      {
+         // data entered doesnt have a valida number format
+      }
       
       return valid
    }
